@@ -1,4 +1,4 @@
-require('dotenv').config(); // Load environment variables
+require('dotenv').config(); 
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -12,7 +12,7 @@ const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 const commands = new Map();
-const recentImages = new Map(); // Store the most recent image per user
+const recentImages = new Map();
 
 // Load commands dynamically
 const commandFiles = fs.readdirSync(path.join(__dirname, 'commands')).filter(file => file.endsWith('.js'));
@@ -21,7 +21,7 @@ for (const file of commandFiles) {
     commands.set(command.name, command);
 }
 
-app.post('/webhook', (req, res) => {
+app.post('/api/webhook', (req, res) => {
     const body = req.body;
 
     if (body.object === 'page') {
@@ -45,14 +45,7 @@ app.post('/webhook', (req, res) => {
                     const commandName = messageText.split(' ')[0].toLowerCase();
 
                     if (commands.has(commandName)) {
-                        commands.get(commandName).execute(
-                            senderId,
-                            webhookEvent,
-                            messageText,
-                            sendTextMessage,
-                            recentImages,
-                            sendVideoAttachment // Pass this to the command
-                        );
+                        commands.get(commandName).execute(senderId, webhookEvent, messageText, sendTextMessage, recentImages);
                     }
                 }
             });
@@ -64,7 +57,7 @@ app.post('/webhook', (req, res) => {
 });
 
 // Verification endpoint
-app.get('/webhook', (req, res) => {
+app.get('/api/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
@@ -77,7 +70,7 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// Send text message helper
+// Helper to send text
 function sendTextMessage(senderId, text) {
     request({
         uri: 'https://graph.facebook.com/v18.0/me/messages',
@@ -90,35 +83,11 @@ function sendTextMessage(senderId, text) {
     }, (err, res, body) => {
         if (err) {
             console.error('Error sending message: ', err);
-        } else if (res.body.error) {
-            console.error('Error response from Facebook: ', res.body.error);
+        } else if (res.body && res.body.error) {
+            console.error('Facebook API error: ', res.body.error);
         }
     });
 }
 
-// Send video attachment helper
-function sendVideoAttachment(senderId, videoUrl) {
-    request({
-        uri: 'https://graph.facebook.com/v18.0/me/messages',
-        qs: { access_token: PAGE_ACCESS_TOKEN },
-        method: 'POST',
-        json: {
-            recipient: { id: senderId },
-            message: {
-                attachment: {
-                    type: 'video',
-                    payload: { url: videoUrl, is_reusable: false }
-                }
-            }
-        }
-    }, (err, res, body) => {
-        if (err) {
-            console.error('Error sending video: ', err);
-        } else if (res.body.error) {
-            console.error('Error response from Facebook: ', res.body.error);
-        }
-    });
-}
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Bot server running on port ${PORT}`));
+// Export app for Vercel
+module.exports = app;
