@@ -12,6 +12,7 @@ const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 const commands = new Map();
+const recentImages = new Map(); // Store the most recent image per user
 
 // Load commands dynamically
 const commandFiles = fs.readdirSync(path.join(__dirname, 'commands')).filter(file => file.endsWith('.js'));
@@ -28,27 +29,24 @@ app.post('/webhook', (req, res) => {
             entry.messaging.forEach(webhookEvent => {
                 const senderId = webhookEvent.sender.id;
 
-                // Handle text commands
+                // Store recent image if received
+                if (webhookEvent.message && webhookEvent.message.attachments) {
+                    webhookEvent.message.attachments.forEach(attachment => {
+                        if (attachment.type === 'image') {
+                            const imageUrl = attachment.payload.url;
+                            recentImages.set(senderId, imageUrl);
+                        }
+                    });
+                }
+
+                // Handle text commands only
                 if (webhookEvent.message && webhookEvent.message.text) {
                     const messageText = webhookEvent.message.text.trim();
                     const commandName = messageText.split(' ')[0].toLowerCase();
 
                     if (commands.has(commandName)) {
-                        commands.get(commandName).execute(senderId, webhookEvent, messageText, sendTextMessage);
+                        commands.get(commandName).execute(senderId, webhookEvent, messageText, sendTextMessage, recentImages);
                     }
-                }
-
-                // Handle image attachments (auto extraction)
-                if (webhookEvent.message && webhookEvent.message.attachments) {
-                    webhookEvent.message.attachments.forEach(attachment => {
-                        if (attachment.type === 'image') {
-                            const imageUrl = attachment.payload.url;
-                            console.log('Extracted image URL:', imageUrl);
-
-                            // Respond back with extracted image URL
-                            sendTextMessage(senderId, `Image received! URL:\n${imageUrl}`);
-                        }
-                    });
                 }
             });
         });
