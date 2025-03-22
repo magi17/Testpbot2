@@ -46,12 +46,12 @@ app.post('/webhook', (req, res) => {
 
                     if (commands.has(commandName)) {
                         commands.get(commandName).execute(
-                            senderId, 
-                            webhookEvent, 
-                            messageText, 
-                            sendTextMessage, 
-                            recentImages, 
-                            sendVideoAttachment
+                            senderId,
+                            webhookEvent,
+                            messageText,
+                            sendTextMessage,
+                            recentImages,
+                            sendVideoAttachment // Pass this to the command
                         );
                     }
                 }
@@ -107,16 +107,13 @@ function sendVideoAttachment(senderId, videoUrl) {
             message: {
                 attachment: {
                     type: 'video',
-                    payload: {
-                        url: videoUrl,
-                        is_reusable: false
-                    }
+                    payload: { url: videoUrl, is_reusable: false }
                 }
             }
         }
     }, (err, res, body) => {
         if (err) {
-            console.error('Error sending video attachment: ', err);
+            console.error('Error sending video: ', err);
         } else if (res.body.error) {
             console.error('Error response from Facebook: ', res.body.error);
         }

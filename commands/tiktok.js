@@ -1,21 +1,21 @@
 const axios = require('axios');
-const request = require('request');
 
 module.exports = {
     name: 'tiktok',
-    description: 'Send a random TikTok video.',
-    async execute(senderId, event, messageText, sendTextMessage, sendVideoAttachment) {
+    description: 'Send random TikTok video',
+    async execute(senderId, webhookEvent, messageText, sendTextMessage, recentImages, sendVideoAttachment) {
         try {
             const response = await axios.get('https://apis-i26b.onrender.com/tikrandom');
-            if (response.data && response.data.playUrl) {
-                const videoUrl = response.data.playUrl;
+            const videoUrl = response.data.playUrl;
+
+            if (videoUrl) {
                 sendVideoAttachment(senderId, videoUrl);
             } else {
-                sendTextMessage(senderId, 'Could not fetch a TikTok video at the moment.');
+                sendTextMessage(senderId, 'Sorry, could not fetch a TikTok video right now.');
             }
         } catch (error) {
             console.error('Error fetching TikTok video:', error);
-            sendTextMessage(senderId, 'An error occurred while fetching the TikTok video.');
+            sendTextMessage(senderId, 'There was an error fetching the TikTok video.');
         }
     }
 };
