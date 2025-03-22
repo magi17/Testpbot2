@@ -45,7 +45,14 @@ app.post('/webhook', (req, res) => {
                     const commandName = messageText.split(' ')[0].toLowerCase();
 
                     if (commands.has(commandName)) {
-                        commands.get(commandName).execute(senderId, webhookEvent, messageText, sendTextMessage, recentImages);
+                        commands.get(commandName).execute(
+                            senderId, 
+                            webhookEvent, 
+                            messageText, 
+                            sendTextMessage, 
+                            recentImages, 
+                            sendVideoAttachment
+                        );
                     }
                 }
             });
@@ -83,6 +90,33 @@ function sendTextMessage(senderId, text) {
     }, (err, res, body) => {
         if (err) {
             console.error('Error sending message: ', err);
+        } else if (res.body.error) {
+            console.error('Error response from Facebook: ', res.body.error);
+        }
+    });
+}
+
+// Send video attachment helper
+function sendVideoAttachment(senderId, videoUrl) {
+    request({
+        uri: 'https://graph.facebook.com/v18.0/me/messages',
+        qs: { access_token: PAGE_ACCESS_TOKEN },
+        method: 'POST',
+        json: {
+            recipient: { id: senderId },
+            message: {
+                attachment: {
+                    type: 'video',
+                    payload: {
+                        url: videoUrl,
+                        is_reusable: false
+                    }
+                }
+            }
+        }
+    }, (err, res, body) => {
+        if (err) {
+            console.error('Error sending video attachment: ', err);
         } else if (res.body.error) {
             console.error('Error response from Facebook: ', res.body.error);
         }
